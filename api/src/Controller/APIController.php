@@ -250,6 +250,12 @@ class APIController extends AbstractController
                 'error' => $e->getMessage(),
                 'details' => $e->getDetails(),
             ], $e->getStatusCode());
+        } catch (\Jyotish\Ganita\Exception\InvalidArgumentException $e) {
+            $this->logger->warning('Invalid calculation timestamp: ' . $e->getMessage());
+
+            return $this->json([
+                'error' => $e->getMessage(),
+            ], 400);
         } catch (\Exception $e) {
             $this->logger->error('An error occurred: ' . $e->getMessage(), [
                 'exception' => get_class($e),

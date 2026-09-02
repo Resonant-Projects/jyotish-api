@@ -89,6 +89,12 @@ class ChartController extends AbstractController
                 'Content-Type'  => 'image/svg+xml',
                 'Cache-Control' => 'public, max-age=3600',
             ]);
+        } catch (\Jyotish\Ganita\Exception\InvalidArgumentException $e) {
+            return new Response(
+                json_encode(['error' => $e->getMessage()]),
+                400,
+                ['Content-Type' => 'application/json']
+            );
         } catch (\Exception $e) {
             return new Response(
                 json_encode(['error' => $e->getMessage()]),
