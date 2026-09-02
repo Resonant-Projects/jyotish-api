@@ -152,13 +152,14 @@ http://localhost:9393/api/calculate?latitude=28.6139&longitude=77.209&year=2023&
 | min        | integer | Yes      | Minute for calculation (0-59)         | 0          |
 | sec        | integer | Yes      | Second for calculation (0-59)         | 0          |
 | time_zone  | string  | No       | Timezone for calculation,             | +03:30 |
-| dst_hour   | integer | No       | DST hours offset                      | 0          |
-| dst_min    | integer | No       | DST minutes offset                    | 0          |
+| dst_hour   | integer | No       | DST hours offset for fixed-offset time zones | 0          |
+| dst_min    | integer | No       | DST minutes offset for fixed-offset time zones | 0          |
 | nesting    | integer | No       | Nesting level for calculations        | 0          |
 | varga      | string  | No       | Varga divisions (comma-separated)     | D1,D9      |
 | infolevel  | string  | No       | Info levels to include               | basic,ashtakavarga,grahabala,rashibala,yogas,panchanga,transit |
 
 - You should specify timezone, for example if you are living in Iran you can put that on +03:30.
+- Named time zones, such as `America/New_York`, apply their own DST rules and ignore the manual DST offsets.
 
 
 ## Timezones:

@@ -467,8 +467,11 @@ class Lib
         $dstHour = self::parseInteger($params['dst_hour'] ?? 0, 'DST hour offset');
         $dstMinute = self::parseInteger($params['dst_min'] ?? 0, 'DST minute offset');
 
-        $date->modify(sprintf('%+d hours', -$dstHour));
-        $date->modify(sprintf('%+d minutes', -$dstMinute));
+        // Named zones already include their historical DST transitions.
+        if ($timeZone->getLocation() === false) {
+            $date->modify(sprintf('%+d hours', -$dstHour));
+            $date->modify(sprintf('%+d minutes', -$dstMinute));
+        }
 
         $utcDate = clone $date;
         $utcDate->setTimezone(new DateTimeZone('UTC'));

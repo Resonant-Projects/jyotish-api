@@ -123,14 +123,14 @@ class APIController extends AbstractController
      * @OA\Parameter(
      *     name="dst_hour",
      *     in="query",
-     *     description="Daylight Saving Time hours offset",
+     *     description="Daylight Saving Time hours offset for fixed-offset time zones. Named zones apply their own DST rules.",
      *     required=false,
      *     @OA\Schema(type="integer", minimum=0, example=0)
      * )
      * @OA\Parameter(
      *     name="dst_min",
      *     in="query",
-     *     description="Daylight Saving Time minutes offset",
+     *     description="Daylight Saving Time minutes offset for fixed-offset time zones. Named zones apply their own DST rules.",
      *     required=false,
      *     @OA\Schema(type="integer", minimum=0, example=0)
      * )
