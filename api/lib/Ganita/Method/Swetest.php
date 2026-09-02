@@ -214,6 +214,10 @@ class Swetest extends AbstractGanita
             throw new Exception\UnexpectedValueException("swetest failed with exit code {$exitCode}: {$commandOutput}");
         }
 
+        if (preg_match('/(?:^|\R)\s*error:/i', $commandOutput)) {
+            throw new Exception\UnexpectedValueException("swetest reported an error: {$commandOutput}");
+        }
+
         if (stripos($commandOutput, 'using Moshier') !== false) {
             throw new Exception\UnexpectedValueException("Swiss Ephemeris data unavailable; refusing Moshier fallback: {$commandOutput}");
         }
