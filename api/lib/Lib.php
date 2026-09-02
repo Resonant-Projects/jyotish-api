@@ -38,6 +38,8 @@ class Lib
 
     public const MIN_EPHEMERIS_DATE_UTC = '1800-01-01 00:00:00 UTC';
     public const MAX_EPHEMERIS_DATE_UTC = '2399-12-31 23:59:59 UTC';
+    public const MIN_PANCHANGA_DATE_UTC = '1800-01-03 00:00:00 UTC';
+    public const MAX_PANCHANGA_DATE_UTC = '2399-12-29 23:59:59 UTC';
 
     public ?array $grahas = null;
     public ?array $lagnas = null;
@@ -278,6 +280,10 @@ class Lib
             'dst_min' => $dst_min,
         ]);
 
+        if (in_array('panchanga', $infolevel, true)) {
+            self::validatePanchangaDate($date);
+        }
+
         $locality = new Locality([
             'longitude' => $longitude,
             'latitude' => $latitude,
@@ -495,5 +501,24 @@ class Lib
         }
 
         throw new \Jyotish\Ganita\Exception\InvalidArgumentException("{$label} must be an integer.");
+    }
+
+    /**
+     * Keep the five-day rise/set window inside the pinned ephemeris files.
+     *
+     * @param DateTime $date Calculation timestamp
+     * @return void
+     */
+    private static function validatePanchangaDate(DateTime $date): void
+    {
+        $utcDate = clone $date;
+        $utcDate->setTimezone(new DateTimeZone('UTC'));
+        $minimum = new DateTime(self::MIN_PANCHANGA_DATE_UTC);
+        $maximum = new DateTime(self::MAX_PANCHANGA_DATE_UTC);
+        if ($utcDate < $minimum || $utcDate > $maximum) {
+            throw new \Jyotish\Ganita\Exception\InvalidArgumentException(
+                'Panchanga calculations require UTC between '.self::MIN_PANCHANGA_DATE_UTC.' and '.self::MAX_PANCHANGA_DATE_UTC.'.'
+            );
+        }
     }
 }

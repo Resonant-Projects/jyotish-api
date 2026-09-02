@@ -151,7 +151,7 @@ class APIController extends AbstractController
      * @OA\Parameter(
      *     name="infolevel",
      *     in="query",
-     *     description="Information levels to include (comma-separated)",
+     *     description="Information levels to include (comma-separated). Panchanga requires UTC between 1800-01-03 and 2399-12-29.",
      *     required=false,
      *     @OA\Schema(type="string", example="basic,panchanga,transit")
      * )
