@@ -91,8 +91,9 @@ class Swetest extends AbstractGanita
             throw new Exception\InvalidArgumentException("Swe key 'swetest' is required and must be path to swetest app.");
         }
 
-        if (!file_exists($swe['swetest'])) {
-            throw new Exception\InvalidArgumentException("In the directory '{$swe['swetest']}' there is no swetest file.");
+        $swetestExecutable = $swe['swetest'].DIRECTORY_SEPARATOR.'swetest';
+        if (!is_dir($swe['swetest']) || !is_file($swetestExecutable) || !is_executable($swetestExecutable)) {
+            throw new Exception\InvalidArgumentException("Swe key 'swetest' must be a directory containing an executable swetest binary.");
         }
 
         $this->swe['swetest'] = $swe['swetest'];
