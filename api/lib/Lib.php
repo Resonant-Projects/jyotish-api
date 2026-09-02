@@ -421,10 +421,7 @@ class Lib
     {
         $components = [];
         foreach (['year', 'month', 'day', 'hour', 'min', 'sec'] as $name) {
-            $components[$name] = filter_var($params[$name] ?? null, FILTER_VALIDATE_INT);
-            if ($components[$name] === false) {
-                throw new \Jyotish\Ganita\Exception\InvalidArgumentException("Date component '{$name}' must be an integer.");
-            }
+            $components[$name] = self::parseInteger($params[$name] ?? null, "Date component '{$name}'");
         }
 
         if (!checkdate($components['month'], $components['day'], $components['year']) ||
@@ -461,11 +458,8 @@ class Lib
             throw new \Jyotish\Ganita\Exception\InvalidArgumentException('Date and time components do not form a valid timestamp.');
         }
 
-        $dstHour = filter_var($params['dst_hour'] ?? 0, FILTER_VALIDATE_INT);
-        $dstMinute = filter_var($params['dst_min'] ?? 0, FILTER_VALIDATE_INT);
-        if ($dstHour === false || $dstMinute === false) {
-            throw new \Jyotish\Ganita\Exception\InvalidArgumentException('DST offsets must be integers.');
-        }
+        $dstHour = self::parseInteger($params['dst_hour'] ?? 0, 'DST hour offset');
+        $dstMinute = self::parseInteger($params['dst_min'] ?? 0, 'DST minute offset');
 
         $date->modify(sprintf('%+d hours', -$dstHour));
         $date->modify(sprintf('%+d minutes', -$dstMinute));
@@ -481,5 +475,25 @@ class Lib
         }
 
         return $date;
+    }
+
+    /**
+     * Parse an integer without rejecting conventional zero padding.
+     *
+     * @param mixed $value Input value
+     * @param string $label Error label
+     * @return int
+     */
+    private static function parseInteger($value, string $label): int
+    {
+        if (is_int($value)) {
+            return $value;
+        }
+
+        if (is_string($value) && preg_match('/^[+-]?[0-9]+$/D', $value)) {
+            return (int) $value;
+        }
+
+        throw new \Jyotish\Ganita\Exception\InvalidArgumentException("{$label} must be an integer.");
     }
 }
