@@ -140,7 +140,7 @@ class Lib
         $date->modify(sprintf("-%s hours",   $dst_hour));
         $date->modify(sprintf("-%s minutes", $dst_min));
 
-        $ganita = new Swetest(["swetest" => SWETEST_PATH]);
+        $ganita = new Swetest(["swetest" => SWETEST_PATH, "sweph" => SWEPH_PATH]);
         $data   = new Data($date, $locality, $ganita);
         $data->calcVargaData($vargas);
         $data->calcParams();
@@ -293,7 +293,7 @@ class Lib
         $date->modify(sprintf("-%s minutes", $dst_min));
 
         # setup ephemeris and calculations
-        $ganita = new Swetest(["swetest" => SWETEST_PATH]);
+        $ganita = new Swetest(["swetest" => SWETEST_PATH, "sweph" => SWEPH_PATH]);
         $data = new Data($date, $locality, $ganita);
         $data->calcVargaData($vargas);
         $data->calcParams();

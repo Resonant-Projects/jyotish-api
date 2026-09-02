@@ -7,3 +7,4 @@
 
 // Use PHP 7.4 null coalescing assignment operator for environment variables
 define('SWETEST_PATH', $_ENV['SWETEST_PATH'] ?? '/var/www/api/swetest/src');
+define('SWEPH_PATH', $_ENV['SWEPH_PATH'] ?? '/var/www/api/swetest/sweph');
