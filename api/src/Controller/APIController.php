@@ -14,6 +14,9 @@ use App\Exception\ApiException;
 
 class APIController extends AbstractController
 {
+    private const MIN_EPHEMERIS_YEAR = 1800;
+    private const MAX_EPHEMERIS_YEAR = 2399;
+
     private LoggerInterface $logger;
     private Lib $chart;
 
@@ -73,7 +76,7 @@ class APIController extends AbstractController
      *     in="query",
      *     description="Year for calculation",
      *     required=true,
-     *     @OA\Schema(type="integer", example=2023)
+     *     @OA\Schema(type="integer", minimum=1800, maximum=2399, example=2023)
      * )
      * @OA\Parameter(
      *     name="month",
@@ -189,11 +192,19 @@ class APIController extends AbstractController
             if (!empty($missingParams)) {
                 throw new ApiException(400, 'Missing required parameters', ['missing' => $missingParams]);
             }
+
+            $year = filter_var($request->query->get('year'), FILTER_VALIDATE_INT);
+            if ($year === false || $year < self::MIN_EPHEMERIS_YEAR || $year > self::MAX_EPHEMERIS_YEAR) {
+                throw new ApiException(400, 'Year is outside the supported Swiss Ephemeris range', [
+                    'minimum' => self::MIN_EPHEMERIS_YEAR,
+                    'maximum' => self::MAX_EPHEMERIS_YEAR,
+                ]);
+            }
             
             $params = [
                 'latitude' => $request->query->get('latitude'),
                 'longitude' => $request->query->get('longitude'),
-                'year' => $request->query->get('year'),
+                'year' => $year,
                 'month' => $request->query->get('month'),
                 'day' => $request->query->get('day'),
                 'hour' => $request->query->get('hour'),

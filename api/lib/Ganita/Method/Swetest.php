@@ -129,7 +129,7 @@ class Swetest extends AbstractGanita
         $time    = ' -ut'.$DateTime->format(Time::FORMAT_DATA_TIME);
         $sid     = ' -sid'.$this->inputAyanamsha[$this->optionAyanamsha];
         
-        $stringHouses = ' -house'.$Locality->getLongitude().','.$Locality->getLatitude().',a';
+        $stringHouses = ' -house'.$Locality->getLongitude().','.$Locality->getLatitude().',W';
         $stringPlanets = implode('', $this->inputPlanets);
         
         if (is_null($params)) {
