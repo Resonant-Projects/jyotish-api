@@ -49,7 +49,7 @@ class Swetest extends AbstractGanita
         Graha::KEY_GU => '5',
         Graha::KEY_SK => '3',
         Graha::KEY_SA => '6',
-        Graha::KEY_RA => 't',
+        Graha::KEY_RA => 'm',
     ];
 
     protected $outputPlanets = [
@@ -60,7 +60,7 @@ class Swetest extends AbstractGanita
         'Jupiter'  => Graha::KEY_GU,
         'Venus'    => Graha::KEY_SK,
         'Saturn'   => Graha::KEY_SA,
-        'trueNode' => Graha::KEY_RA,
+        'meanNode' => Graha::KEY_RA,
     ];
     
     protected $outputHouses = [
@@ -91,8 +91,9 @@ class Swetest extends AbstractGanita
             throw new Exception\InvalidArgumentException("Swe key 'swetest' is required and must be path to swetest app.");
         }
 
-        if (!file_exists($swe['swetest'])) {
-            throw new Exception\InvalidArgumentException("In the directory '{$swe['swetest']}' there is no swetest file.");
+        $swetestExecutable = $swe['swetest'].DIRECTORY_SEPARATOR.'swetest';
+        if (!is_dir($swe['swetest']) || !is_file($swetestExecutable) || !is_executable($swetestExecutable)) {
+            throw new Exception\InvalidArgumentException("Swe key 'swetest' must be a directory containing an executable swetest binary.");
         }
 
         $this->swe['swetest'] = $swe['swetest'];
@@ -100,6 +101,10 @@ class Swetest extends AbstractGanita
         if (empty($swe['sweph'])) {
             $this->swe['sweph'] = $swe['swetest'];
         } else {
+            if (!is_dir($swe['sweph'])) {
+                throw new Exception\InvalidArgumentException("Swe key 'sweph' must be a directory containing Swiss Ephemeris data files.");
+            }
+
             $this->swe['sweph'] = $swe['sweph'];
         }
     }
@@ -124,7 +129,7 @@ class Swetest extends AbstractGanita
         $time    = ' -ut'.$DateTime->format(Time::FORMAT_DATA_TIME);
         $sid     = ' -sid'.$this->inputAyanamsha[$this->optionAyanamsha];
         
-        $stringHouses = ' -house'.$Locality->getLongitude().','.$Locality->getLatitude().',a';
+        $stringHouses = ' -house'.$Locality->getLongitude().','.$Locality->getLatitude().',W';
         $stringPlanets = implode('', $this->inputPlanets);
         
         if (is_null($params)) {
@@ -148,10 +153,11 @@ class Swetest extends AbstractGanita
             }
         }
 
-        $string = 'swetest'.$dir.$date.$time.$planets.$houses.$sid.' -fPlbsad -g, -head';
+        $string = 'swetest'.$dir.$date.$time.$planets.$houses.$sid.' -eswe -fPlbsad -g, -head';
 
         putenv("PATH={$this->swe['swetest']}");
-        exec($string, $out);
+        $out = [];
+        $this->execute($string, $out);
 
         $dataParams = $this->formatParams($out, $params);
         
@@ -180,14 +186,41 @@ class Swetest extends AbstractGanita
         $geopos	= ' -geopos'.$Locality->getLongitude().','.$Locality->getLatitude().',0';
         $rising = ' -'.$this->optionRising;
 
-        $string = 'swetest'.$dir.$date.$planet.$geopos.$rising.' -n5 -rise';
+        $string = 'swetest'.$dir.$date.$planet.$geopos.$rising.' -eswe -n5 -rise';
 
         putenv("PATH={$this->swe['swetest']}");
-        exec($string, $out);
+        $out = [];
+        $this->execute($string, $out);
         
         $dataRising = $this->formatRising($out, $graha);
         
         return $dataRising;
+    }
+
+    /**
+     * Execute swetest and reject its silent Moshier fallback.
+     *
+     * @param string $command Swetest command
+     * @param array $output Command output
+     * @return void
+     */
+    private function execute($command, array &$output)
+    {
+        $exitCode = 0;
+        exec($command.' 2>&1', $output, $exitCode);
+
+        $commandOutput = implode("\n", $output);
+        if ($exitCode !== 0) {
+            throw new Exception\UnexpectedValueException("swetest failed with exit code {$exitCode}: {$commandOutput}");
+        }
+
+        if (preg_match('/(?:^|\R)\s*error:/i', $commandOutput)) {
+            throw new Exception\UnexpectedValueException("swetest reported an error: {$commandOutput}");
+        }
+
+        if (stripos($commandOutput, 'using Moshier') !== false) {
+            throw new Exception\UnexpectedValueException("Swiss Ephemeris data unavailable; refusing Moshier fallback: {$commandOutput}");
+        }
     }
 
     /**

@@ -14,6 +14,9 @@ use App\Exception\ApiException;
 
 class APIController extends AbstractController
 {
+    private const MIN_EPHEMERIS_YEAR = 1800;
+    private const MAX_EPHEMERIS_YEAR = 2399;
+
     private LoggerInterface $logger;
     private Lib $chart;
 
@@ -73,7 +76,7 @@ class APIController extends AbstractController
      *     in="query",
      *     description="Year for calculation",
      *     required=true,
-     *     @OA\Schema(type="integer", example=2023)
+     *     @OA\Schema(type="integer", minimum=1800, maximum=2399, example=2023)
      * )
      * @OA\Parameter(
      *     name="month",
@@ -120,14 +123,14 @@ class APIController extends AbstractController
      * @OA\Parameter(
      *     name="dst_hour",
      *     in="query",
-     *     description="Daylight Saving Time hours offset",
+     *     description="Daylight Saving Time hours offset for fixed-offset time zones. Named zones apply their own DST rules.",
      *     required=false,
      *     @OA\Schema(type="integer", minimum=0, example=0)
      * )
      * @OA\Parameter(
      *     name="dst_min",
      *     in="query",
-     *     description="Daylight Saving Time minutes offset",
+     *     description="Daylight Saving Time minutes offset for fixed-offset time zones. Named zones apply their own DST rules.",
      *     required=false,
      *     @OA\Schema(type="integer", minimum=0, example=0)
      * )
@@ -148,7 +151,7 @@ class APIController extends AbstractController
      * @OA\Parameter(
      *     name="infolevel",
      *     in="query",
-     *     description="Information levels to include (comma-separated)",
+     *     description="Information levels to include (comma-separated). Panchanga requires UTC between 1800-01-03 and 2399-12-29.",
      *     required=false,
      *     @OA\Schema(type="string", example="basic,panchanga,transit")
      * )
@@ -189,11 +192,19 @@ class APIController extends AbstractController
             if (!empty($missingParams)) {
                 throw new ApiException(400, 'Missing required parameters', ['missing' => $missingParams]);
             }
+
+            $year = filter_var($request->query->get('year'), FILTER_VALIDATE_INT);
+            if ($year === false || $year < self::MIN_EPHEMERIS_YEAR || $year > self::MAX_EPHEMERIS_YEAR) {
+                throw new ApiException(400, 'Year is outside the supported Swiss Ephemeris range', [
+                    'minimum' => self::MIN_EPHEMERIS_YEAR,
+                    'maximum' => self::MAX_EPHEMERIS_YEAR,
+                ]);
+            }
             
             $params = [
                 'latitude' => $request->query->get('latitude'),
                 'longitude' => $request->query->get('longitude'),
-                'year' => $request->query->get('year'),
+                'year' => $year,
                 'month' => $request->query->get('month'),
                 'day' => $request->query->get('day'),
                 'hour' => $request->query->get('hour'),
@@ -239,6 +250,12 @@ class APIController extends AbstractController
                 'error' => $e->getMessage(),
                 'details' => $e->getDetails(),
             ], $e->getStatusCode());
+        } catch (\Jyotish\Ganita\Exception\InvalidArgumentException $e) {
+            $this->logger->warning('Invalid calculation timestamp: ' . $e->getMessage());
+
+            return $this->json([
+                'error' => $e->getMessage(),
+            ], 400);
         } catch (\Exception $e) {
             $this->logger->error('An error occurred: ' . $e->getMessage(), [
                 'exception' => get_class($e),

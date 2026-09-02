@@ -11,6 +11,9 @@ use Jyotish\DrawChart\Draw;
 
 class ChartController extends AbstractController
 {
+    private const MIN_EPHEMERIS_YEAR = 1800;
+    private const MAX_EPHEMERIS_YEAR = 2399;
+
     private Lib $lib;
 
     public function __construct()
@@ -38,6 +41,19 @@ class ChartController extends AbstractController
             );
         }
 
+        $year = filter_var($request->query->get('year'), FILTER_VALIDATE_INT);
+        if ($year === false || $year < self::MIN_EPHEMERIS_YEAR || $year > self::MAX_EPHEMERIS_YEAR) {
+            return new Response(
+                json_encode([
+                    'error' => 'Year is outside the supported Swiss Ephemeris range',
+                    'minimum' => self::MIN_EPHEMERIS_YEAR,
+                    'maximum' => self::MAX_EPHEMERIS_YEAR,
+                ]),
+                400,
+                ['Content-Type' => 'application/json']
+            );
+        }
+
         $style = strtolower($request->query->get('style', 'north'));
         $varga = strtoupper($request->query->get('varga', 'D1'));
         $size  = max(300, min(800, (int) $request->query->get('size', 500)));
@@ -45,7 +61,7 @@ class ChartController extends AbstractController
         $params = [
             'latitude'  => $request->query->get('latitude'),
             'longitude' => $request->query->get('longitude'),
-            'year'      => $request->query->get('year'),
+            'year'      => $year,
             'month'     => $request->query->get('month'),
             'day'       => $request->query->get('day'),
             'hour'      => $request->query->get('hour'),
@@ -73,6 +89,12 @@ class ChartController extends AbstractController
                 'Content-Type'  => 'image/svg+xml',
                 'Cache-Control' => 'public, max-age=3600',
             ]);
+        } catch (\Jyotish\Ganita\Exception\InvalidArgumentException $e) {
+            return new Response(
+                json_encode(['error' => $e->getMessage()]),
+                400,
+                ['Content-Type' => 'application/json']
+            );
         } catch (\Exception $e) {
             return new Response(
                 json_encode(['error' => $e->getMessage()]),

@@ -36,6 +36,11 @@ include __DIR__ . "/config.php";
 class Lib
 {
 
+    public const MIN_EPHEMERIS_DATE_UTC = '1800-01-01 00:00:00 UTC';
+    public const MAX_EPHEMERIS_DATE_UTC = '2399-12-31 23:59:59 UTC';
+    public const MIN_PANCHANGA_DATE_UTC = '1800-01-03 00:00:00 UTC';
+    public const MAX_PANCHANGA_DATE_UTC = '2399-12-29 23:59:59 UTC';
+
     public ?array $grahas = null;
     public ?array $lagnas = null;
 
@@ -119,28 +124,17 @@ class Lib
 
     public function buildData(array $params): Data
     {
+        $date = self::createCalculationDate($params);
+
         $locality = new Locality([
             'longitude' => $params['longitude'],
             'latitude'  => $params['latitude'],
             'altitude'  => 0,
         ]);
 
-        $time_zone = $params['time_zone'] ?? '+03:30';
-        $dst_hour  = $params['dst_hour']  ?? 0;
-        $dst_min   = $params['dst_min']   ?? 0;
-        $vargas    = $params['varga']      ?? ['D1'];
+        $vargas = $params['varga'] ?? ['D1'];
 
-        $datetime = sprintf(
-            "%s-%s-%s %s:%s:%s%s",
-            $params['year'], $params['month'], $params['day'],
-            $params['hour'], $params['min'],   $params['sec'],
-            $time_zone
-        );
-        $date = new DateTime($datetime);
-        $date->modify(sprintf("-%s hours",   $dst_hour));
-        $date->modify(sprintf("-%s minutes", $dst_min));
-
-        $ganita = new Swetest(["swetest" => SWETEST_PATH]);
+        $ganita = new Swetest(["swetest" => SWETEST_PATH, "sweph" => SWEPH_PATH]);
         $data   = new Data($date, $locality, $ganita);
         $data->calcVargaData($vargas);
         $data->calcParams();
@@ -274,6 +268,22 @@ class Lib
         array $infolevel = ["basic", "ashtakavarga", "grahabala", "rashibala", "yogas", "panchanga", "transit"]
     ) {
 
+        $date = self::createCalculationDate([
+            'year' => $year,
+            'month' => $month,
+            'day' => $day,
+            'hour' => $hour,
+            'min' => $min,
+            'sec' => $sec,
+            'time_zone' => $time_zone,
+            'dst_hour' => $dst_hour,
+            'dst_min' => $dst_min,
+        ]);
+
+        if (in_array('panchanga', $infolevel, true)) {
+            self::validatePanchangaDate($date);
+        }
+
         $locality = new Locality([
             'longitude' => $longitude,
             'latitude' => $latitude,
@@ -284,16 +294,8 @@ class Lib
         # From now user should add $timezone from -12:00 to +12:00
         // $tz = $this->getNearestTimezone($latitude, $longitude);
 
-        # format datetime for DateTime Object
-        $datetime = sprintf("%s-%s-%s %s:%s:%s%s", $year, $month, $day, $hour, $min, $sec, $time_zone);
-        $date = new DateTime($datetime);
-
-        # perform DST offest
-        $date->modify(sprintf("-%s hours", $dst_hour));
-        $date->modify(sprintf("-%s minutes", $dst_min));
-
         # setup ephemeris and calculations
-        $ganita = new Swetest(["swetest" => SWETEST_PATH]);
+        $ganita = new Swetest(["swetest" => SWETEST_PATH, "sweph" => SWEPH_PATH]);
         $data = new Data($date, $locality, $ganita);
         $data->calcVargaData($vargas);
         $data->calcParams();
@@ -413,5 +415,113 @@ class Lib
             $vargaData['houses'][$bhava_key]['graha'] = $bhava_grahas;
         }
         return $vargaData;
+    }
+
+    /**
+     * Build and validate the exact calculation timestamp.
+     *
+     * @param array $params Date, timezone, and DST components
+     * @return DateTime
+     */
+    private static function createCalculationDate(array $params): DateTime
+    {
+        $components = [];
+        foreach (['year', 'month', 'day', 'hour', 'min', 'sec'] as $name) {
+            $components[$name] = self::parseInteger($params[$name] ?? null, "Date component '{$name}'");
+        }
+
+        if (!checkdate($components['month'], $components['day'], $components['year']) ||
+            $components['hour'] < 0 || $components['hour'] > 23 ||
+            $components['min'] < 0 || $components['min'] > 59 ||
+            $components['sec'] < 0 || $components['sec'] > 59
+        ) {
+            throw new \Jyotish\Ganita\Exception\InvalidArgumentException('Date and time components do not form a valid timestamp.');
+        }
+
+        $timeZoneName = $params['time_zone'] ?? '+03:30';
+        if (!is_string($timeZoneName) || trim($timeZoneName) === '') {
+            throw new \Jyotish\Ganita\Exception\InvalidArgumentException('Time zone is required.');
+        }
+
+        try {
+            $timeZone = new DateTimeZone($timeZoneName);
+        } catch (\Exception $e) {
+            throw new \Jyotish\Ganita\Exception\InvalidArgumentException("Invalid time zone '{$timeZoneName}'.");
+        }
+
+        $localTimestamp = sprintf(
+            '%04d-%02d-%02d %02d:%02d:%02d',
+            $components['year'],
+            $components['month'],
+            $components['day'],
+            $components['hour'],
+            $components['min'],
+            $components['sec']
+        );
+        $date = DateTime::createFromFormat('!Y-m-d H:i:s', $localTimestamp, $timeZone);
+        $dateErrors = DateTime::getLastErrors();
+        if ($date === false || ($dateErrors !== false && ($dateErrors['warning_count'] > 0 || $dateErrors['error_count'] > 0))) {
+            throw new \Jyotish\Ganita\Exception\InvalidArgumentException('Date and time components do not form a valid timestamp.');
+        }
+
+        $dstHour = self::parseInteger($params['dst_hour'] ?? 0, 'DST hour offset');
+        $dstMinute = self::parseInteger($params['dst_min'] ?? 0, 'DST minute offset');
+
+        // Named zones already include their historical DST transitions.
+        if ($timeZone->getLocation() === false) {
+            $date->modify(sprintf('%+d hours', -$dstHour));
+            $date->modify(sprintf('%+d minutes', -$dstMinute));
+        }
+
+        $utcDate = clone $date;
+        $utcDate->setTimezone(new DateTimeZone('UTC'));
+        $minimum = new DateTime(self::MIN_EPHEMERIS_DATE_UTC);
+        $maximum = new DateTime(self::MAX_EPHEMERIS_DATE_UTC);
+        if ($utcDate < $minimum || $utcDate > $maximum) {
+            throw new \Jyotish\Ganita\Exception\InvalidArgumentException(
+                'Calculation time must resolve to UTC between '.self::MIN_EPHEMERIS_DATE_UTC.' and '.self::MAX_EPHEMERIS_DATE_UTC.'.'
+            );
+        }
+
+        return $date;
+    }
+
+    /**
+     * Parse an integer without rejecting conventional zero padding.
+     *
+     * @param mixed $value Input value
+     * @param string $label Error label
+     * @return int
+     */
+    private static function parseInteger($value, string $label): int
+    {
+        if (is_int($value)) {
+            return $value;
+        }
+
+        if (is_string($value) && preg_match('/^[+-]?[0-9]+$/D', $value)) {
+            return (int) $value;
+        }
+
+        throw new \Jyotish\Ganita\Exception\InvalidArgumentException("{$label} must be an integer.");
+    }
+
+    /**
+     * Keep the five-day rise/set window inside the pinned ephemeris files.
+     *
+     * @param DateTime $date Calculation timestamp
+     * @return void
+     */
+    private static function validatePanchangaDate(DateTime $date): void
+    {
+        $utcDate = clone $date;
+        $utcDate->setTimezone(new DateTimeZone('UTC'));
+        $minimum = new DateTime(self::MIN_PANCHANGA_DATE_UTC);
+        $maximum = new DateTime(self::MAX_PANCHANGA_DATE_UTC);
+        if ($utcDate < $minimum || $utcDate > $maximum) {
+            throw new \Jyotish\Ganita\Exception\InvalidArgumentException(
+                'Panchanga calculations require UTC between '.self::MIN_PANCHANGA_DATE_UTC.' and '.self::MAX_PANCHANGA_DATE_UTC.'.'
+            );
+        }
     }
 }

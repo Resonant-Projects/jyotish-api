@@ -5,6 +5,10 @@ FROM php:8.3-fpm AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV COMPOSER_ALLOW_SUPERUSER=1
+ENV SWETEST_PATH=/var/www/api/swetest/src
+ENV SWEPH_PATH=/var/www/api/swetest/sweph
+
+ARG SWISSEPH_EPHEMERIS_REF=3fd0f956d73898b91cc4f67cf18b21af656d1342
 
 WORKDIR /var/www/api
 
@@ -29,6 +33,14 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction && \
 
 COPY . .
 
+RUN curl -fsSL --retry 3 \
+        "https://raw.githubusercontent.com/aloistr/swisseph/${SWISSEPH_EPHEMERIS_REF}/ephe/sepl_18.se1" \
+        -o swetest/sweph/sepl_18.se1 && \
+    curl -fsSL --retry 3 \
+        "https://raw.githubusercontent.com/aloistr/swisseph/${SWISSEPH_EPHEMERIS_REF}/ephe/semo_18.se1" \
+        -o swetest/sweph/semo_18.se1 && \
+    cd swetest/sweph && sha256sum --check ephemeris.sha256
+
 RUN test -f .env || cp .env.example .env
 
 RUN cd swetest/src && make clean && make swetest && chmod +x swetest
@@ -47,6 +59,8 @@ RUN composer dump-autoload --no-dev --optimize && \
 FROM php:8.3-fpm AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV SWETEST_PATH=/var/www/api/swetest/src
+ENV SWEPH_PATH=/var/www/api/swetest/sweph
 
 WORKDIR /var/www/api
 
