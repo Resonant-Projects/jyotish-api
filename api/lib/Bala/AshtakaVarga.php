@@ -75,10 +75,10 @@ class AshtakaVarga
      */
     protected $binduMo = [
         Graha::KEY_SY => [3, 6, 7, 8, 10, 11],
-        Graha::KEY_CH => [1, 3, 6, 7, 9, 10, 11],
-        Graha::KEY_MA => [2, 3, 5, 6, 10, 11],
+        Graha::KEY_CH => [1, 3, 6, 7, 10, 11],
+        Graha::KEY_MA => [2, 3, 5, 6, 9, 10, 11],
         Graha::KEY_BU => [1, 3, 4, 5, 7, 8, 10, 11],
-        Graha::KEY_GU => [1, 2, 4, 7, 8, 10, 11],
+        Graha::KEY_GU => [1, 4, 7, 8, 10, 11, 12],
         Graha::KEY_SK => [3, 4, 5, 7, 9, 10, 11],
         Graha::KEY_SA => [3, 5, 6, 11],
         Graha::KEY_LG => [3, 6, 10, 11]
@@ -144,7 +144,7 @@ class AshtakaVarga
     protected $binduVe = [
         Graha::KEY_SY => [8, 11, 12],
         Graha::KEY_CH => [1, 2, 3, 4, 5, 8, 9, 11, 12],
-        Graha::KEY_MA => [3, 4, 6, 9, 11, 12],
+        Graha::KEY_MA => [3, 5, 6, 9, 11, 12],
         Graha::KEY_BU => [3, 5, 6, 9, 11],
         Graha::KEY_GU => [5, 8, 9, 10, 11],
         Graha::KEY_SK => [1, 2, 3, 4, 5, 8, 9, 10, 11],
