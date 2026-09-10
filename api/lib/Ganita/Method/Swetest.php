@@ -49,7 +49,7 @@ class Swetest extends AbstractGanita
         Graha::KEY_GU => '5',
         Graha::KEY_SK => '3',
         Graha::KEY_SA => '6',
-        Graha::KEY_RA => 'm',
+        Graha::KEY_RA => 't',
     ];
 
     protected $outputPlanets = [
@@ -60,7 +60,7 @@ class Swetest extends AbstractGanita
         'Jupiter'  => Graha::KEY_GU,
         'Venus'    => Graha::KEY_SK,
         'Saturn'   => Graha::KEY_SA,
-        'meanNode' => Graha::KEY_RA,
+        'trueNode' => Graha::KEY_RA,
     ];
     
     protected $outputHouses = [
