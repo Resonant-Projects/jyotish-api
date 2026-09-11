@@ -55,7 +55,8 @@ RUN curl -fsSL --retry 3 \
     rm -rf swetest/src && mkdir -p swetest/src && \
     tar -xzf /tmp/swisseph.tar.gz --strip-components=1 -C swetest/src && \
     rm /tmp/swisseph.tar.gz && \
-    make -C swetest/src swetest && chmod +x swetest/src/swetest
+    make -C swetest/src swetest && chmod +x swetest/src/swetest && \
+    rm -f swetest/src/*.o swetest/src/libswe.a
 
 RUN php tests/swiss-longitudes.php
 

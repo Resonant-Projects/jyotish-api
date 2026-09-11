@@ -2,7 +2,13 @@
 // Runs the real PHP adapter and swetest binary, including output parsing and true nodes.
 require dirname(__DIR__).'/vendor/autoload.php';
 
-$references = json_decode(file_get_contents(__DIR__.'/swiss-longitude-references.json'), true, 512, JSON_THROW_ON_ERROR);
+$fixturePath = __DIR__.'/swiss-longitude-references.json';
+$fixture = @file_get_contents($fixturePath);
+if ($fixture === false) {
+    fprintf(STDERR, "Cannot read Swiss longitude references: %s\n", $fixturePath);
+    exit(1);
+}
+$references = json_decode($fixture, true, 512, JSON_THROW_ON_ERROR);
 $failures = 0;
 foreach ($references['cases'] as $case) {
     [$year, $month, $day] = explode('-', $case['date']);
