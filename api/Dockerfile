@@ -8,6 +8,9 @@ ENV COMPOSER_ALLOW_SUPERUSER=1
 ENV SWETEST_PATH=/var/www/api/swetest/src
 ENV SWEPH_PATH=/var/www/api/swetest/sweph
 
+# Swiss Ephemeris 2.10.03. Verify the exact source archive before compiling.
+ARG SWISSEPH_SOURCE_REF=175e1fcb3108bcd5c0d146c803f51dcf23508012
+ARG SWISSEPH_SOURCE_SHA256=3fc81e72be98d4de80e9bf56fa6c6d1368327ee23f99db7415341f3b60e5f466
 ARG SWISSEPH_EPHEMERIS_REF=3fd0f956d73898b91cc4f67cf18b21af656d1342
 
 WORKDIR /var/www/api
@@ -43,7 +46,19 @@ RUN curl -fsSL --retry 3 \
 
 RUN test -f .env || cp .env.example .env
 
-RUN cd swetest/src && make clean && make swetest && chmod +x swetest
+# The checked-in 1.78 sources have an obsolete future Delta T model.
+# Replace them with the verified upstream source, including its license notices.
+RUN curl -fsSL --retry 3 \
+        "https://github.com/aloistr/swisseph/archive/${SWISSEPH_SOURCE_REF}.tar.gz" \
+        -o /tmp/swisseph.tar.gz && \
+    echo "${SWISSEPH_SOURCE_SHA256}  /tmp/swisseph.tar.gz" | sha256sum --check - && \
+    rm -rf swetest/src && mkdir -p swetest/src && \
+    tar -xzf /tmp/swisseph.tar.gz --strip-components=1 -C swetest/src && \
+    rm /tmp/swisseph.tar.gz && \
+    make -C swetest/src swetest && chmod +x swetest/src/swetest && \
+    rm -f swetest/src/*.o swetest/src/libswe.a
+
+RUN php tests/swiss-longitudes.php
 
 RUN mkdir -p var/cache var/log && \
     chmod -R 777 var
