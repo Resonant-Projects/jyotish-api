@@ -23,7 +23,7 @@ them to a Julian date and applies its Delta T model. No extra UTC-to-TT adjustme
 The 1.78 model predicted Delta T of 219.769878 seconds at
 `2101-01-01T00:00:00Z`; 2.10.03 predicts 93.646192 seconds. The older model moved
 the sidereal Moon to 268.6998148 degrees instead of the independent modern
-reference 268.678723004 degrees. At the unchanged 0.01-degree oracle tolerance,
+reference 268.678726321 degrees. At the unchanged 0.01-degree oracle tolerance,
 that is a failure. Future Delta T is an engine model prediction, not a
 measurement of future Earth rotation.
 
@@ -43,7 +43,8 @@ and 2399. True-node references distinguish the lunar-node policy.
 `tests/swiss-longitude-references.json` was independently generated using
 `pyswisseph==2.10.3.2`, Swiss 2.10.03, `set_sid_mode(SIDM_LAHIRI)`, and
 `calc_ut(julday(year, month, day, 0), body, FLG_SWIEPH | FLG_SIDEREAL)`.
-All returned flags were 65602. Rahu uses `TRUE_NODE`, and Ketu is Rahu plus
+All returned flags were 65602. The regression verifies the reference file hashes
+against the image data before calculating. Rahu uses `TRUE_NODE`, and Ketu is Rahu plus
 180 degrees modulo 360. The same checksum-verified `semo_18.se1` and
 `sepl_18.se1` files were used. Reference values must be generated independently,
 not copied from the API response under test.

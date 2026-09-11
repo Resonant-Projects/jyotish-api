@@ -9,6 +9,15 @@ if ($fixture === false) {
     exit(1);
 }
 $references = json_decode($fixture, true, 512, JSON_THROW_ON_ERROR);
+// Lib loads the deployment's configured ephemeris path via config.php.
+new Jyotish\Lib();
+foreach ($references['ephemeris_sha256'] as $file => $expectedHash) {
+    $actualHash = @hash_file('sha256', SWEPH_PATH.'/'.$file);
+    if ($actualHash !== $expectedHash) {
+        fprintf(STDERR, "Swiss reference ephemeris checksum mismatch: %s\n", $file);
+        exit(1);
+    }
+}
 $failures = 0;
 foreach ($references['cases'] as $case) {
     [$year, $month, $day] = explode('-', $case['date']);
